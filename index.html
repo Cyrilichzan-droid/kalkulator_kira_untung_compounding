@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkulator Keuntungan Tahunan</title>
+    <!-- Link to the Web App Manifest for PWA features -->
+    <link rel="manifest" href="manifest.json">
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configure Tailwind for Inter font -->
+    <!-- Configure Tailwind for Inter font and define custom loss color -->
     <script>
         tailwind.config = {
             theme: {
@@ -15,8 +17,9 @@
                         sans: ['Inter', 'sans-serif'],
                     },
                     colors: {
-                        'primary': '#059669', // Emerald 600
+                        'primary': '#059669', // Emerald 600 (Green - Profit)
                         'secondary': '#facc15', // Amber 400
+                        'loss': '#dc2626', // Red 600 (New color for loss)
                         'background': '#f3f4f6', // Gray 100
                     }
                 }
@@ -28,13 +31,38 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
+        
+        /* Custom styles for the main card and result boxes */
         .card {
+            /* Standard shadow */
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease;
+            transition: all 0.5s ease;
         }
+
+        /* Added green glow effect to the main card */
         .card:hover {
             transform: translateY(-2px);
+            /* Brighter green glow */
+            box-shadow: 0 0 40px rgba(5, 150, 105, 0.4), 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
         }
+
+        /* Base style for result boxes */
+        .result-box {
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); 
+        }
+
+        /* Green Glow for Profit */
+        .result-box-profit:hover {
+            box-shadow: 0 0 15px rgba(5, 150, 105, 0.6); 
+        }
+        
+        /* Red Glow for Loss */
+        .result-box-loss:hover {
+            box-shadow: 0 0 15px rgba(220, 38, 38, 0.6); /* Using loss color #dc2626 */
+        }
+
+        /* Hide default number input controls */
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
             -webkit-appearance: none;
@@ -69,28 +97,46 @@
                 </label>
             </div>
             
-            <h1 class="text-4xl font-extrabold text-primary mb-2" id="headerTitle">Kalkulator Keuntungan Fleksibel</h1>
-            <p class="text-gray-600 text-lg" id="headerSubtitle">Kira pulangan berdasarkan kadar yang fleksibel untuk tempoh masa yang anda pilih.</p>
+            <!-- Adjusted title size for better mobile fit -->
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-primary mb-2 mt-12 sm:mt-0" id="headerTitle">Kalkulator Keuntungan Fleksibel</h1>
+            <p class="text-gray-600 text-base sm:text-lg" id="headerSubtitle">Kira pulangan berdasarkan kadar yang fleksibel untuk tempoh masa yang anda pilih.</p>
         </header>
 
         <main class="flex justify-center">
             <!-- Combined Calculator Card -->
-            <div id="annual-profit-calculator" class="card bg-white p-8 rounded-xl border-t-8 border-primary w-full max-w-lg">
-                <h2 class="text-3xl font-bold text-primary mb-6 text-center" id="cardTitle">
+            <div id="annual-profit-calculator" class="card bg-white p-6 sm:p-8 rounded-xl border-t-8 border-primary w-full max-w-lg">
+                <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6 text-center" id="cardTitle">
                     Pengiraan Keuntungan
                 </h2>
+
+                <!-- Exchange Rate Input -->
+                <div class="mb-6 p-4 bg-secondary/10 rounded-lg border border-secondary/20">
+                    <label for="exchangeRateInput" class="block text-sm font-medium text-gray-700" id="labelExchangeRateTitle">Tetapan Kadar Tukaran Manual</label>
+                    <div class="mt-1 flex space-x-2 items-center">
+                        <span class="text-lg font-semibold text-gray-600">1 RM =</span>
+                        <input type="number" id="exchangeRateInput" value="0.24" min="0.0001" step="0.01" class="block w-24 rounded-md border-gray-300 shadow-sm p-3 border focus:border-secondary focus:ring-secondary text-right" oninput="calculateAll()">
+                        <span class="text-lg font-semibold text-gray-600">USD</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2" id="labelExchangeRateSubtitle">Kadar ini digunakan untuk penukaran automatik Modal Awal.</p>
+                </div>
                 
                 <div class="space-y-6">
-                    <!-- Input 1: Modal Awal -->
+                    <!-- Input 1: Modal Awal (with Currency Dropdown) -->
                     <div>
-                        <label for="principal" class="block text-sm font-medium text-gray-700" id="labelPrincipal">Modal Awal (RM)</label>
-                        <input type="number" id="principal" value="1000" min="0" step="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary" oninput="calculateAll()">
+                        <label for="principal" class="block text-sm font-medium text-gray-700" id="labelPrincipal">Modal Awal</label>
+                        <div class="flex space-x-2 mt-1">
+                            <input type="number" id="principal" value="1000" min="0" step="100" class="block w-2/3 rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary" oninput="calculateAll()">
+                            <select id="principalCurrencySelect" onchange="convertPrincipalValue()" class="block w-1/3 rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary">
+                                <option value="MYR">RM</option>
+                                <option value="USD">USD</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <!-- Pilihan Jenis Keuntungan -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2" id="labelCalcType">Pilih Cara Kira Keuntungan</label>
-                        <div class="flex space-x-6 bg-gray-50 p-3 rounded-lg">
+                        <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6 bg-gray-50 p-3 rounded-lg">
                             <!-- Radio 1: Percentage -->
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="radio" name="profitType" value="percentage" checked onclick="toggleCalculationType()" class="form-radio text-primary h-4 w-4 border-gray-300 focus:ring-primary">
@@ -99,7 +145,7 @@
                             <!-- Radio 2: Fixed Amount -->
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="radio" name="profitType" value="fixed" onclick="toggleCalculationType()" class="form-radio text-primary h-4 w-4 border-gray-300 focus:ring-primary">
-                                <span class="ml-2 text-gray-700 font-medium" id="radioFixed">Jumlah Tetap (RM)</span>
+                                <span class="ml-2 text-gray-700 font-medium" id="radioFixed">Jumlah Tetap</span>
                             </label>
                         </div>
                     </div>
@@ -110,7 +156,7 @@
                         <div class="flex space-x-4 mt-1">
                             <div class="flex-grow">
                                 <label for="rate" class="sr-only">Peratus</label>
-                                <input type="number" id="rate" value="7" min="0.01" max="100" step="0.1" class="block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary" oninput="calculateAll()" placeholder="Peratus">
+                                <input type="number" id="rate" value="7" min="-100" max="100" step="0.1" class="block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary" oninput="calculateAll()" placeholder="Peratus">
                             </div>
                             <div>
                                 <label for="rateFrequency" class="sr-only">Kekerapan</label>
@@ -123,15 +169,19 @@
                         </div>
                     </div>
 
-                    <!-- Input Group 3: Fixed Amount -->
+                    <!-- Input Group 3: Fixed Amount (with Currency Dropdown) -->
                     <div id="fixedAmountInputGroup" class="hidden">
-                        <label class="block text-sm font-medium text-gray-700" id="labelFixedAmount">Keuntungan Tetap (RM)</label>
+                        <label class="block text-sm font-medium text-gray-700" id="labelFixedAmount">Keuntungan Tetap</label>
                         <div class="flex space-x-4 mt-1">
-                            <div class="flex-grow">
-                                <label for="fixedAmount" class="sr-only">Jumlah (RM)</label>
-                                <input type="number" id="fixedAmount" value="500" min="0" step="10" class="block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary" oninput="calculateAll()" placeholder="Jumlah (RM)">
+                            <div class="flex space-x-2 w-2/3">
+                                <label for="fixedAmount" class="sr-only">Jumlah</label>
+                                <input type="number" id="fixedAmount" value="500" min="-1000000" step="10" class="block w-2/3 rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary" oninput="calculateAll()" placeholder="Jumlah">
+                                <select id="fixedCurrencySelect" onchange="calculateAll()" class="block w-1/3 rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary">
+                                    <option value="MYR">RM</option>
+                                    <option value="USD">USD</option>
+                                </select>
                             </div>
-                            <div>
+                            <div class="w-1/3">
                                 <label for="fixedFrequency" class="sr-only">Kekerapan</label>
                                 <select id="fixedFrequency" onchange="calculateAll()" class="block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary">
                                     <option value="day" id="fixedFreqDay">Sehari</option>
@@ -152,9 +202,10 @@
                             </div>
                             <div>
                                 <label for="durationUnit" class="block text-sm font-medium text-gray-700" id="labelDurationUnit">Unit</label>
+                                <!-- UPDATED ORDER: days > weeks > months -->
                                 <select id="durationUnit" onchange="calculateAll()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary">
-                                    <option value="weeks" selected id="durationUnitWeeks">Minggu</option>
                                     <option value="days" id="durationUnitDays">Hari</option>
+                                    <option value="weeks" selected id="durationUnitWeeks">Minggu</option>
                                     <option value="months" id="durationUnitMonths">Bulan</option>
                                 </select>
                             </div>
@@ -167,17 +218,22 @@
                 <div class="mt-8 pt-6 border-t border-gray-200 space-y-4">
                     <h3 class="text-xl font-semibold text-gray-800" id="titleResults">Keputusan Pengiraan</h3>
                     
+                    <!-- Current Rate Display -->
+                    <p class="text-sm text-gray-500 italic" id="currentExchangeRateDisplay"></p>
+
                     <!-- Primary Result (Shows Profit) -->
-                    <div id="primaryResultDisplay" class="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                        <span class="block text-sm font-medium text-primary" id="resultLabel">Keuntungan Setelah Tempoh</span>
-                        <div class="font-bold text-2xl text-primary mt-1" id="annualProfitResult">RM 0.00</div>
+                    <!-- Initial classes will be set by JS on load based on calculation -->
+                    <div id="primaryResultDisplay" class="result-box p-4 rounded-lg"> 
+                        <span class="block text-sm font-medium" id="resultLabel">Keuntungan Setelah Tempoh</span>
+                        <div class="font-bold text-2xl mt-1" id="annualProfitResult">RM 0.00</div>
                     </div>
                     
-                    <!-- Secondary Result (Shows Total Amount - NOW ALWAYS VISIBLE) -->
-                    <div id="totalAmountDisplay" class="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                        <span class="block text-sm font-medium text-primary" id="labelTotalAmount">Jumlah Akhir (Modal + Untung)</span>
-                        <div class="font-bold text-2xl text-primary mt-1" id="totalAmountResult">RM 0.00</div>
+                    <!-- Secondary Result (Shows Total Amount) -->
+                    <div id="totalAmountDisplay" class="result-box p-4 rounded-lg">
+                        <span class="block text-sm font-medium" id="labelTotalAmount">Jumlah Akhir (Modal + Untung)</span>
+                        <div class="font-bold text-2xl mt-1" id="totalAmountResult">RM 0.00</div>
                     </div>
+
                 </div>
             </div>
         </main>
@@ -196,12 +252,14 @@
                 headerTitle: 'Kalkulator Keuntungan Fleksibel',
                 headerSubtitle: 'Kira pulangan berdasarkan kadar yang fleksibel untuk tempoh masa yang anda pilih.',
                 cardTitle: 'Pengiraan Keuntungan',
-                labelPrincipal: 'Modal Awal (RM)',
+                labelExchangeRateTitle: 'Tetapan Kadar Tukaran Manual',
+                labelExchangeRateSubtitle: 'Kadar ini digunakan untuk penukaran automatik Modal Awal.',
+                labelPrincipal: 'Modal Awal',
                 labelCalcType: 'Pilih Cara Kira Keuntungan',
                 radioPercentage: 'Peratusan (%)',
-                radioFixed: 'Jumlah Tetap (RM)',
+                radioFixed: 'Jumlah Tetap',
                 labelRate: 'Peratus Keuntungan (%)',
-                labelFixedAmount: 'Keuntungan Tetap (RM)',
+                labelFixedAmount: 'Keuntungan Tetap',
                 rateFreqDay: 'Sehari',
                 rateFreqWeek: 'Seminggu',
                 rateFreqMonth: 'Sebulan',
@@ -219,17 +277,20 @@
                 resultLabelInitial: 'Keuntungan Setelah Tempoh',
                 resultLabelCompoundingSuffix: ' (Berkompaun)',
                 resultLabelFixedSuffix: ' (Jumlah Tetap)',
+                currentRateFormat: (rate) => `Kadar semasa: 1 RM = ${rate} USD`,
             },
             'en': {
                 headerTitle: 'Flexible Profit Calculator',
                 headerSubtitle: 'Calculate returns based on flexible rates for your chosen duration.',
                 cardTitle: 'Profit Calculation',
-                labelPrincipal: 'Initial Capital (RM)',
+                labelExchangeRateTitle: 'Manual Exchange Rate Setting',
+                labelExchangeRateSubtitle: 'This rate is used for automatic conversion of Initial Capital.',
+                labelPrincipal: 'Initial Capital',
                 labelCalcType: 'Choose Calculation Method',
                 radioPercentage: 'Percentage (%)',
-                radioFixed: 'Fixed Amount (RM)',
+                radioFixed: 'Fixed Amount',
                 labelRate: 'Profit Percentage (%)',
-                labelFixedAmount: 'Fixed Profit (RM)',
+                labelFixedAmount: 'Fixed Profit',
                 rateFreqDay: 'Daily',
                 rateFreqWeek: 'Weekly',
                 rateFreqMonth: 'Monthly',
@@ -247,8 +308,23 @@
                 resultLabelInitial: 'Profit After Period',
                 resultLabelCompoundingSuffix: ' (Compounded)',
                 resultLabelFixedSuffix: ' (Fixed Amount)',
+                currentRateFormat: (rate) => `Current rate: 1 RM = ${rate} USD`,
             }
         };
+
+        /**
+         * @function getExchangeRates
+         * Reads the manually set RM to USD rate and calculates the inverse.
+         * @returns {{RM_TO_USD_RATE: number, USD_TO_RM_RATE: number}} - Object containing both rates.
+         */
+        function getExchangeRates() {
+            const rmToUsdInput = parseFloat(document.getElementById('exchangeRateInput').value) || 0.0;
+            // Ensure the rate is positive and reasonable, default to 0.24 if input is invalid
+            const rmToUsd = rmToUsdInput > 0.0001 ? rmToUsdInput : 0.24; 
+            const usdTorm = 1 / rmToUsd;
+            return { RM_TO_USD_RATE: rmToUsd, USD_TO_RM_RATE: usdTorm };
+        }
+
 
         /**
          * @function toggleLanguage
@@ -289,7 +365,7 @@
         function updateUI(lang) {
             const t = translations[lang];
 
-            // Update simple IDs
+            // Update all simple text IDs
             document.getElementById('headerTitle').textContent = t.headerTitle;
             document.getElementById('headerSubtitle').textContent = t.headerSubtitle;
             document.getElementById('cardTitle').textContent = t.cardTitle;
@@ -304,18 +380,19 @@
             document.getElementById('labelDurationUnit').textContent = t.labelDurationUnit;
             document.getElementById('titleResults').textContent = t.titleResults;
             document.getElementById('labelTotalAmount').textContent = t.labelTotalAmount;
+            document.getElementById('labelExchangeRateTitle').textContent = t.labelExchangeRateTitle;
+            document.getElementById('labelExchangeRateSubtitle').textContent = t.labelExchangeRateSubtitle;
 
-            // Update Select Options (Rate Frequency)
+
+            // Update Select Options (Frequencies and Units)
             document.getElementById('rateFreqDay').textContent = t.rateFreqDay;
             document.getElementById('rateFreqWeek').textContent = t.rateFreqWeek;
             document.getElementById('rateFreqMonth').textContent = t.rateFreqMonth;
 
-            // Update Select Options (Fixed Frequency)
             document.getElementById('fixedFreqDay').textContent = t.fixedFreqDay;
             document.getElementById('fixedFreqWeek').textContent = t.fixedFreqWeek;
             document.getElementById('fixedFreqMonth').textContent = t.fixedFreqMonth;
 
-            // Update Select Options (Duration Unit)
             document.getElementById('durationUnitDays').textContent = t.durationUnitDays;
             document.getElementById('durationUnitWeeks').textContent = t.durationUnitWeeks;
             document.getElementById('durationUnitMonths').textContent = t.durationUnitMonths;
@@ -324,14 +401,16 @@
 
         /**
          * @function formatCurrency
-         * Formats a number into Malaysian Ringgit (RM) currency string.
+         * Formats a number into the specified currency string.
          * @param {number} value - The number to format.
+         * @param {string} currencyCode - 'MYR' or 'USD'.
          * @returns {string} - Formatted currency string.
          */
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('ms-MY', {
+        function formatCurrency(value, currencyCode) {
+            const locale = currencyCode === 'MYR' ? 'ms-MY' : 'en-US';
+            return new Intl.NumberFormat(locale, {
                 style: 'currency',
-                currency: 'MYR',
+                currency: currencyCode,
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(value);
@@ -363,21 +442,94 @@
                 default:
                     totalWeeks = 0;
             }
-            // Use Math.max(0, ...) to prevent negative periods if input is somehow negative
             return Math.max(0, totalWeeks);
         }
 
         /**
+         * @function convertToBaseCurrency
+         * Converts a value from its input currency to the base currency (MYR/RM).
+         * @param {number} value - The amount to convert.
+         * @param {string} fromCurrency - The currency code of the value ('MYR' or 'USD').
+         * @returns {number} - Value in the base currency (RM).
+         */
+        function convertToBaseCurrency(value, fromCurrency) {
+            if (fromCurrency === 'USD') {
+                const rates = getExchangeRates();
+                return value * rates.USD_TO_RM_RATE;
+            }
+            return value; // Already MYR/RM
+        }
+
+        /**
+         * @function convertFromBaseCurrency
+         * Converts a value from the base currency (MYR/RM) to the target currency.
+         * @param {number} value - The amount in MYR (base currency).
+         * @param {string} toCurrency - The target currency code ('MYR' or 'USD').
+         * @returns {number} - Value in the target currency.
+         */
+        function convertFromBaseCurrency(value, toCurrency) {
+            if (toCurrency === 'USD') {
+                const rates = getExchangeRates();
+                return value * rates.RM_TO_USD_RATE;
+            }
+            return value; // Already MYR/RM
+        }
+
+        /**
+         * @function convertPrincipalValue
+         * Converts the principal input value when the currency dropdown changes
+         * and updates the input field to reflect the new currency's value.
+         */
+        function convertPrincipalValue() {
+            const principalInput = document.getElementById('principal');
+            const currencySelect = document.getElementById('principalCurrencySelect');
+            const rates = getExchangeRates();
+            
+            // Get the value before conversion
+            let currentValue = parseFloat(principalInput.value) || 0;
+            const newCurrency = currencySelect.value;
+            
+            // Retrieve the currency *before* the change (stored in data-last-currency)
+            const previousCurrency = currencySelect.dataset.lastCurrency;
+
+            if (!previousCurrency || previousCurrency === newCurrency) {
+                // If previous currency is not set (initial load) or no change, just calculate
+                currencySelect.dataset.lastCurrency = newCurrency;
+                calculateAll();
+                return;
+            }
+            
+            let convertedValue = currentValue;
+
+            // Convert FROM the previous currency TO the new currency
+            if (previousCurrency === 'MYR' && newCurrency === 'USD') {
+                // RM -> USD
+                convertedValue = currentValue * rates.RM_TO_USD_RATE;
+            } else if (previousCurrency === 'USD' && newCurrency === 'MYR') {
+                // USD -> RM
+                convertedValue = currentValue * rates.USD_TO_RM_RATE;
+            }
+
+            // Update the input field with the new value (rounded to 2 decimal places)
+            // Use toFixed() to prevent floating point errors and keep it monetary
+            principalInput.value = convertedValue.toFixed(2);
+            
+            // Store the new currency as the "last" one for the next change event
+            currencySelect.dataset.lastCurrency = newCurrency;
+            
+            // Recalculate all results
+            calculateAll();
+        }
+
+
+        /**
          * @function toggleCalculationType
          * Hides/shows the relevant input group (Rate or Fixed Amount) based on radio button selection.
-         * Total Amount Display is now ALWAYS visible.
          */
         function toggleCalculationType() {
             const type = document.querySelector('input[name="profitType"]:checked').value;
             const percentageGroup = document.getElementById('percentageInputGroup');
             const fixedGroup = document.getElementById('fixedAmountInputGroup');
-            
-            // Note: totalAmountDisplay is no longer toggled as hidden/shown; it is always visible.
             
             if (type === 'percentage') {
                 percentageGroup.classList.remove('hidden');
@@ -390,96 +542,172 @@
         }
 
         /**
+         * @function updateExchangeRateDisplay
+         * Updates the text showing the current exchange rate used.
+         */
+        function updateExchangeRateDisplay() {
+            const rates = getExchangeRates();
+            const rmToUsd = rates.RM_TO_USD_RATE.toFixed(4); // Display 4 decimal places for precision
+            document.getElementById('currentExchangeRateDisplay').textContent = translations[currentLang].currentRateFormat(rmToUsd);
+        }
+
+        /**
+         * @function applyResultStyling
+         * Toggles between profit (green) and loss (red) styling for result boxes.
+         * @param {boolean} isLoss - True if the profit is negative, false otherwise.
+         */
+        function applyResultStyling(isLoss) {
+            // Tailwind classes for success (Green - Primary) and loss (Red) states
+            const profitClasses = ['bg-primary/10', 'border-primary/20', 'text-primary'];
+            const lossClasses = ['bg-red-100', 'border-red-300', 'text-loss']; // using custom 'loss' color
+
+            const resultElements = [
+                document.getElementById('primaryResultDisplay'),
+                document.getElementById('totalAmountDisplay')
+            ];
+            const valueElements = [
+                document.getElementById('annualProfitResult'),
+                document.getElementById('totalAmountResult'),
+                document.getElementById('resultLabel'), // Include result label for color change
+                document.getElementById('labelTotalAmount') // Include total amount label for color change
+            ];
+
+            resultElements.forEach(el => {
+                // Manage background, border, and custom glow class
+                profitClasses.slice(0, 2).forEach(c => el.classList.toggle(c, !isLoss));
+                lossClasses.slice(0, 2).forEach(c => el.classList.toggle(c, isLoss));
+                
+                // Manage custom glow class
+                el.classList.toggle('result-box-profit', !isLoss);
+                el.classList.toggle('result-box-loss', isLoss);
+
+                // Ensure border remains visible
+                el.classList.add('border');
+            });
+
+            valueElements.forEach(el => {
+                // Manage text color
+                profitClasses.slice(2).forEach(c => el.classList.toggle(c, !isLoss));
+                lossClasses.slice(2).forEach(c => el.classList.toggle(c, isLoss));
+            });
+        }
+
+
+        /**
          * @function calculateAll
-         * Calculates annual profit and total amount based on the selected type and duration.
+         * Calculates profit and total amount, converting inputs to the base currency (RM) and
+         * converting final results back to the principal currency for display.
          */
         function calculateAll() {
             const t = translations[currentLang];
             const type = document.querySelector('input[name="profitType"]:checked').value;
-            const principal = parseFloat(document.getElementById('principal').value) || 0;
             
-            // Get calculation period in weeks
+            // Update the display of the current rate
+            updateExchangeRateDisplay();
+            
+            // Get currency selection for display
+            const principalCurrencyCode = document.getElementById('principalCurrencySelect').value;
+            
+            // 1. Convert ALL inputs to the Base Currency (MYR/RM)
+            
+            // Principal
+            const principalInput = parseFloat(document.getElementById('principal').value) || 0;
+            const principalInputCurrency = document.getElementById('principalCurrencySelect').value;
+            const principalRM = convertToBaseCurrency(principalInput, principalInputCurrency);
+
+            // Calculation Period
             const totalWeeks = getCalculationPeriods();
 
             const annualProfitResult = document.getElementById('annualProfitResult');
             const totalAmountResult = document.getElementById('totalAmountResult');
             const resultLabel = document.getElementById('resultLabel');
             
-            // Get selected duration unit text (in current language)
+            // Duration Text
             const durationValue = document.getElementById('durationValue').value;
             const durationUnitElement = document.getElementById('durationUnit').options[document.getElementById('durationUnit').selectedIndex];
+            // Uses the translation key from the selected option (e.g., durationUnitDays)
             const durationUnitKey = 'durationUnit' + durationUnitElement.value.charAt(0).toUpperCase() + durationUnitElement.value.slice(1);
             const durationUnitText = t[durationUnitKey]; 
 
             let newLabel = `${t.resultLabelInitial} ${durationValue} ${durationUnitText}`;
 
-            let profit = 0;
-            let totalAmount = principal;
+            let profitRM = 0;
+            let totalAmountRM = principalRM;
 
             if (type === 'percentage') {
                 newLabel += t.resultLabelCompoundingSuffix;
                 const ratePercent = parseFloat(document.getElementById('rate').value) || 0;
-                const rateFrequency = document.getElementById('rateFrequency').value; // Get percentage frequency
+                const rateFrequency = document.getElementById('rateFrequency').value;
                 
-                let ratePerWeek = 0; // Effective weekly rate (in decimal)
+                let ratePerWeek = 0; 
 
-                if (ratePercent > 0) {
-                    // Convert percentage to decimal rate
+                if (principalRM > 0) { // Only calculate if there is initial capital
                     const rateDecimal = ratePercent / 100;
                     
-                    // 1. Convert input rate to effective weekly compounding rate
                     if (rateFrequency === 'day') {
-                        // Effective weekly rate if compounded daily: (1 + r_daily)^7 - 1
+                        // Rate per day: (1 + rateDecimal)^7 - 1
                         ratePerWeek = Math.pow(1 + rateDecimal, DAYS_PER_WEEK) - 1;
                     } else if (rateFrequency === 'week') {
-                        // Input rate is already weekly
+                        // Rate per week: directly
                         ratePerWeek = rateDecimal;
                     } else if (rateFrequency === 'month') {
-                        // Effective weekly rate if compounded monthly: (1 + r_monthly)^(1/WEEKS_PER_MONTH) - 1
-                        // This is the Equivalent periodic rate calculation
+                        // Rate per month: (1 + rateDecimal)^(1/WEEKS_PER_MONTH) - 1
                         ratePerWeek = Math.pow(1 + rateDecimal, 1 / WEEKS_PER_MONTH) - 1;
                     }
                 }
                 
-                if (principal > 0 && ratePerWeek > 0 && totalWeeks > 0) {
-                    // Compound Interest Formula: A = P * (1 + r_weekly)^totalWeeks
-                    totalAmount = principal * Math.pow(1 + ratePerWeek, totalWeeks);
-                    profit = totalAmount - principal;
+                if (principalRM > 0 && totalWeeks > 0) {
+                    totalAmountRM = principalRM * Math.pow(1 + ratePerWeek, totalWeeks);
+                    profitRM = totalAmountRM - principalRM;
                 } else {
-                    totalAmount = principal;
-                    profit = 0;
+                    totalAmountRM = principalRM;
+                    profitRM = 0;
                 }
 
             } else { // type === 'fixed'
                 newLabel += t.resultLabelFixedSuffix;
-                const fixedAmount = parseFloat(document.getElementById('fixedAmount').value) || 0;
-                const fixedFrequency = document.getElementById('fixedFrequency').value; // Get fixed profit frequency
+                
+                // Fixed Amount Input (Convert to RM)
+                const fixedAmountInput = parseFloat(document.getElementById('fixedAmount').value) || 0;
+                const fixedInputCurrency = document.getElementById('fixedCurrencySelect').value;
+                const fixedAmountRM = convertToBaseCurrency(fixedAmountInput, fixedInputCurrency);
 
-                let weeklyFixedProfit = 0;
+                const fixedFrequency = document.getElementById('fixedFrequency').value;
 
-                // Convert fixed profit to actual weekly rate
+                let weeklyFixedProfitRM = 0;
+
                 if (fixedFrequency === 'day') {
-                    weeklyFixedProfit = fixedAmount * DAYS_PER_WEEK;
+                    weeklyFixedProfitRM = fixedAmountRM * DAYS_PER_WEEK;
                 } else if (fixedFrequency === 'week') {
-                    weeklyFixedProfit = fixedAmount;
+                    weeklyFixedProfitRM = fixedAmountRM;
                 } else if (fixedFrequency === 'month') {
-                    // Calculate weekly profit from monthly profit
-                    weeklyFixedProfit = fixedAmount / WEEKS_PER_MONTH; 
+                    weeklyFixedProfitRM = fixedAmountRM / WEEKS_PER_MONTH; 
                 }
                 
-                // Profit Calculation: Profit = Actual Weekly Profit * totalWeeks
-                if (fixedAmount >= 0 && totalWeeks > 0) {
-                    profit = weeklyFixedProfit * totalWeeks;
-                    totalAmount = principal + profit; // Calculate total amount
+                if (totalWeeks > 0) {
+                    profitRM = weeklyFixedProfitRM * totalWeeks;
+                    totalAmountRM = principalRM + profitRM;
                 } else {
-                    profit = 0;
-                    totalAmount = principal;
+                    profitRM = 0;
+                    totalAmountRM = principalRM;
                 }
             }
+            
+            // 2. Convert Final Results from Base Currency (RM) to Display Currency
+            const profitDisplay = convertFromBaseCurrency(profitRM, principalCurrencyCode);
+            const totalAmountDisplay = convertFromBaseCurrency(totalAmountRM, principalCurrencyCode);
+            
+            // Check for loss to apply red styling
+            const isLoss = profitDisplay < 0;
+            applyResultStyling(isLoss);
 
+
+            // 3. Update Result Displays
             resultLabel.textContent = newLabel;
-            annualProfitResult.textContent = formatCurrency(profit);
-            totalAmountResult.textContent = formatCurrency(totalAmount);
+            
+            // Use the formatCurrency function with the selected principal currency
+            annualProfitResult.textContent = formatCurrency(profitDisplay, principalCurrencyCode);
+            totalAmountResult.textContent = formatCurrency(totalAmountDisplay, principalCurrencyCode);
         }
 
         // Start calculation and update UI when the page loads
@@ -487,10 +715,21 @@
             // Set initial calculation type
             toggleCalculationType();
             
+            // Set default duration to weeks (52) if nothing is selected or saved.
+            const durationUnitSelect = document.getElementById('durationUnit');
+            if (durationUnitSelect.value !== 'days' && durationUnitSelect.value !== 'months') {
+                durationUnitSelect.value = 'weeks';
+            }
+            
+            // Initialize the last currency state for the auto-conversion feature
+            document.getElementById('principalCurrencySelect').dataset.lastCurrency = document.getElementById('principalCurrencySelect').value;
+            
             // Set initial language UI (MS default). The checkbox is unchecked, so currentLang='ms'.
             const langSwitch = document.getElementById('lang-switch');
             langSwitch.checked = false; 
             toggleLanguage(); // Call this to set the initial state colors and labels
+            
+            updateExchangeRateDisplay();
         };
 
     </script>
