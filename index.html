@@ -7,6 +7,7 @@
     <!-- Link to the Web App Manifest for PWA features -->
     <link rel="manifest" href="manifest.json">
     <!-- Load Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/aspect-ratio@0.4.2/dist/aspect-ratio.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Chart.js for visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -42,8 +43,6 @@
         }
 
         /* Dynamic Glow Effect for the main card */
-        
-        /* Green Glow for Profit Card */
         .card-profit-glow:hover { 
             transform: translateY(-2px);
             /* Brighter green glow (primary color) */
@@ -84,14 +83,87 @@
         }
         
         /* Custom styles for the language toggle switch */
-        /* Move slider to the right when checkbox is checked (EN mode) */
         #lang-switch:checked + label #slider {
             transform: translateX(100%);
+        }
+
+        /* Styling for the Basic Calculator Modal */
+        #basicCalculatorWrapper.active {
+            opacity: 1;
+            pointer-events: auto; /* Re-enable interactions */
+        }
+        #basicCalculatorWrapper {
+            opacity: 0;
+            pointer-events: none; /* Block interactions when hidden */
+            transition: opacity 0.3s ease;
+        }
+        .calc-btn {
+            @apply rounded-xl font-bold text-2xl py-3 shadow-md transition transform duration-150;
         }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen flex items-center justify-center">
 
+    <!-- Basic Calculator Component (Modal Overlay) -->
+    <!-- Default hidden using Tailwind's 'hidden' class, managed by JS for smooth transition -->
+    <div id="basicCalculatorWrapper" class="fixed inset-0 bg-black bg-opacity-50 hidden flex z-50 items-center justify-center">
+        <!-- The calculator card itself is centered in the fixed container -->
+        <div id="basicCalculator" class="bg-gray-800 p-4 rounded-3xl shadow-2xl w-full max-w-xs transition-transform duration-300 relative">
+            
+            <!-- Close Button -->
+            <button onclick="toggleBasicCalculator()" class="absolute -top-3 -right-3 bg-red-600 text-white rounded-full h-8 w-8 flex items-center justify-center text-sm font-bold z-10 hover:bg-red-700 transition transform hover:scale-105" title="Tutup Kalkulator">
+                X
+            </button>
+
+            <!-- Display -->
+            <input type="text" id="calcDisplay" value="0" disabled class="w-full h-16 mb-4 text-4xl text-white bg-gray-900 rounded-2xl text-right p-3 font-mono border-2 border-gray-700">
+            
+            <!-- Buttons Grid -->
+            <div class="grid grid-cols-4 gap-3">
+                
+                <!-- Row 1 -->
+                <button onclick="calcClear()" class="calc-btn bg-gray-600 text-white col-span-2 hover:bg-gray-700">C</button>
+                <button onclick="calcInput('/')" class="calc-btn bg-secondary text-gray-900 hover:bg-secondary/80">/</button>
+                <button onclick="calcInput('*')" class="calc-btn bg-secondary text-gray-900 hover:bg-secondary/80">x</button>
+                
+                <!-- Row 2 -->
+                <button onclick="calcInput('7')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">7</button>
+                <button onclick="calcInput('8')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">8</button>
+                <button onclick="calcInput('9')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">9</button>
+                <button onclick="calcInput('-')" class="calc-btn bg-secondary text-gray-900 hover:bg-secondary/80">-</button>
+                
+                <!-- Row 3 -->
+                <button onclick="calcInput('4')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">4</button>
+                <button onclick="calcInput('5')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">5</button>
+                <button onclick="calcInput('6')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">6</button>
+                <button onclick="calcInput('+')" class="calc-btn bg-secondary text-gray-900 hover:bg-secondary/80">+</button>
+                
+                <!-- Row 4 -->
+                <button onclick="calcInput('1')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">1</button>
+                <button onclick="calcInput('2')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">2</button>
+                <button onclick="calcInput('3')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">3</button>
+                <button onclick="calcEquals()" class="calc-btn bg-primary text-white row-span-2 hover:bg-primary/90">=</button>
+                
+                <!-- Row 5 -->
+                <button onclick="calcInput('0')" class="calc-btn bg-gray-700 text-white col-span-2 hover:bg-gray-600">0</button>
+                <button onclick="calcInput('.')" class="calc-btn bg-gray-700 text-white hover:bg-gray-600">.</button>
+            </div>
+            
+            <!-- Copy to Input feature -->
+            <div class="mt-4 border-t border-gray-700 pt-3">
+                <select id="copyTargetSelect" class="w-full bg-gray-700 text-white py-2 px-3 rounded-lg text-sm mb-2">
+                    <option value="principal" id="copyToPrincipalOption">Salin ke Modal Awal</option>
+                    <option value="rate" id="copyToRateOption">Salin ke Peratus Keuntungan</option>
+                    <option value="fixedAmount" id="copyToFixedOption">Salin ke Jumlah Tetap</option>
+                    <option value="durationValue" id="copyToDurationOption">Salin ke Tempoh (Nilai)</option>
+                </select>
+                <button onclick="copyBasicCalcResult()" class="w-full bg-primary text-white py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition" id="copyToInputBtn">
+                    Salin & Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Container is fluid on mobile and centered/max-width on desktop -->
     <div class="w-full max-w-4xl space-y-8">
         
@@ -112,17 +184,31 @@
         </div>
 
         <header class="text-center relative">
-            <!-- Adjusted title margin removed as toggle is no longer absolute -->
             <h1 class="text-2xl sm:text-4xl font-extrabold text-primary mb-2" id="headerTitle">Kalkulator Keuntungan Fleksibel</h1>
             <p class="text-gray-600 text-base sm:text-lg" id="headerSubtitle">Kira pulangan berdasarkan kadar yang fleksibel untuk tempoh masa yang anda pilih.</p>
         </header>
 
         <main class="flex justify-center">
             <!-- Combined Calculator Card: Max width set to lg (56rem) to keep it compact on desktop -->
-            <div id="annual-profit-calculator" class="card bg-white p-6 sm:p-8 rounded-xl border-t-8 border-primary card-profit-glow w-full max-w-lg">
-                <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6 text-center" id="cardTitle">
-                    Pengiraan Keuntungan
-                </h2>
+            <div id="annual-profit-calculator" class="card bg-white p-6 sm:p-8 rounded-xl border-t-8 border-primary card-profit-glow w-full max-w-lg relative">
+                
+                <!-- Card Header with Toggle Button -->
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-primary" id="cardTitle">
+                        Pengiraan Keuntungan
+                    </h2>
+                    <!-- Basic Calculator Toggle Button - Title attribute is set dynamically by JS -->
+                    <button onclick="toggleBasicCalculator()" class="text-primary hover:text-green-700 transition-colors p-2 rounded-full transform hover:scale-105" id="toggleCalcBtn" title="">
+                        <!-- SVG for Calculator Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                            <line x1="8" y1="6" x2="16" y2="6"/>
+                            <line x1="8" y1="10" x2="16" y2="10"/>
+                            <line x1="8" y1="14" x2="16" y2="14"/>
+                            <line x1="12" y1="18" x2="12" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
 
                 <!-- Exchange Rate Input -->
                 <div class="mb-6 p-4 bg-secondary/10 rounded-lg border border-secondary/20">
@@ -134,7 +220,7 @@
                         </div>
                         <span class="text-lg font-semibold text-gray-600">USD</span>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2" id="labelExchangeRateSubtitle">Kadar ini ditetapkan secara manual.</p>
+                    <p class="text-xs text-gray-500 mt-2" id="labelExchangeRateSubtitle">Kadar ini ditetapkan secara manually.</p>
                 </div>
                 
                 <div class="space-y-6">
@@ -211,7 +297,7 @@
                         </div>
                     </div>
                     
-                    <!-- Input Group 4: Duration (border-t is now here since Advanced Options is removed) -->
+                    <!-- Input Group 4: Duration -->
                     <div class="border-t pt-6 mt-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4" id="titleDuration">Tempoh Pengiraan</h3>
                         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
@@ -233,7 +319,7 @@
 
                 </div>
 
-                <!-- Results Section: Good padding and clear text sizes for mobile legibility -->
+                <!-- Results Section -->
                 <div class="mt-8 pt-6 border-t border-gray-200 space-y-4" id="resultsSection">
                     <h3 class="text-xl font-semibold text-gray-800" id="titleResults">Keputusan Pengiraan</h3>
                     
@@ -287,6 +373,14 @@
         let rateSource = 'initial'; // 'initial' (default value), 'manual' (user modified)
         let profitChart = null; // Chart.js instance
 
+        // --- Basic Calculator State ---
+        let currentInput = '0';
+        let previousValue = 0;
+        let operation = null;
+        let waitingForNewInput = true;
+        // ------------------------------
+
+
         // Translation dictionary for all static text elements
         const translations = {
             'ms': {
@@ -321,6 +415,7 @@
                 chartTitle: 'Graf Baki Akhir Mingguan',
                 exportCsvLabel: 'Eksport ke CSV',
                 exportPdfLabel: 'Eksport ke PDF (Cetak)',
+                toggleCalcBtnTitle: 'Buka Kalkulator Asas', // Added for tooltip
                 currentRateFormat: (rate) => {
                     let sourceText = rateSource === 'manual' ? translations[currentLang].sourceManual : '';
                     return `Kadar semasa: 1 RM = ${rate} USD${sourceText}`;
@@ -328,6 +423,11 @@
                 chartYLabel: 'Baki Akhir',
                 chartXLabel: 'Minggu',
                 csvFileName: 'Laporan_Keuntungan.csv',
+                copyToPrincipalOption: 'Salin ke Modal Awal',
+                copyToRateOption: 'Salin ke Peratus Keuntungan',
+                copyToFixedOption: 'Salin ke Jumlah Tetap',
+                copyToDurationOption: 'Salin ke Tempoh (Nilai)',
+                copyToInputBtn: 'Salin & Tutup'
             },
             'en': {
                 headerTitle: 'Flexible Profit Calculator',
@@ -361,6 +461,7 @@
                 chartTitle: 'Weekly Final Balance Chart',
                 exportCsvLabel: 'Export to CSV',
                 exportPdfLabel: 'Export to PDF (Print)',
+                toggleCalcBtnTitle: 'Open Basic Calculator', // Added for tooltip
                 currentRateFormat: (rate) => {
                     let sourceText = rateSource === 'manual' ? translations[currentLang].sourceManual : '';
                     return `Current rate: 1 MYR = ${rate} USD${sourceText}`;
@@ -368,6 +469,11 @@
                 chartYLabel: 'Final Balance',
                 chartXLabel: 'Week',
                 csvFileName: 'Profit_Report.csv',
+                copyToPrincipalOption: 'Copy to Initial Capital',
+                copyToRateOption: 'Copy to Profit Percentage',
+                copyToFixedOption: 'Copy to Fixed Amount',
+                copyToDurationOption: 'Copy to Duration (Value)',
+                copyToInputBtn: 'Copy & Close'
             }
         };
 
@@ -441,6 +547,10 @@
             document.getElementById('exportCsvLabel').textContent = t.exportCsvLabel;
             document.getElementById('exportPdfLabel').textContent = t.exportPdfLabel;
             
+            // Update Basic Calculator Toggle Button Title/Tooltip (FIXED HERE)
+            document.getElementById('toggleCalcBtn').title = t.toggleCalcBtnTitle;
+
+
             // Update Select Options (Frequencies and Units)
             document.getElementById('rateFreqDay').textContent = t.rateFreqDay;
             document.getElementById('rateFreqWeek').textContent = t.rateFreqWeek;
@@ -453,6 +563,13 @@
             document.getElementById('durationUnitDays').textContent = t.durationUnitDays;
             document.getElementById('durationUnitWeeks').textContent = t.durationUnitWeeks;
             document.getElementById('durationUnitMonths').textContent = t.durationUnitMonths;
+
+            // Update Basic Calculator Options
+            document.getElementById('copyToPrincipalOption').textContent = t.copyToPrincipalOption;
+            document.getElementById('copyToRateOption').textContent = t.copyToRateOption;
+            document.getElementById('copyToFixedOption').textContent = t.copyToFixedOption;
+            document.getElementById('copyToDurationOption').textContent = t.copyToDurationOption;
+            document.getElementById('copyToInputBtn').textContent = t.copyToInputBtn;
         }
 
         /**
@@ -939,6 +1056,178 @@
             }
         }
 
+        // --- Basic Calculator Functions ---
+
+        /**
+         * @function toggleBasicCalculator
+         * Shows or hides the floating basic calculator modal with smooth transition.
+         */
+        function toggleBasicCalculator() {
+            const wrapper = document.getElementById('basicCalculatorWrapper');
+
+            if (wrapper.classList.contains('active')) {
+                // Closing sequence:
+                wrapper.classList.remove('active'); // Start transition to opacity: 0
+                // Wait for transition (0.3s) before setting display: none (via hidden class)
+                setTimeout(() => {
+                    wrapper.classList.add('hidden'); 
+                }, 300); // Matches the CSS transition duration
+            } else {
+                // Opening sequence:
+                wrapper.classList.remove('hidden'); // Set display: flex
+                // Allow brief moment for layout/reflow before starting transition
+                setTimeout(() => {
+                    wrapper.classList.add('active'); // Transition to opacity: 1
+                }, 10);
+                
+                // Reset calculator state when opening
+                calcClear();
+            }
+        }
+
+        /**
+         * @function updateCalcDisplay
+         * Updates the calculator display with the current input string.
+         */
+        function updateCalcDisplay() {
+            document.getElementById('calcDisplay').value = currentInput;
+        }
+
+        /**
+         * @function calcClear
+         * Resets the calculator state.
+         */
+        function calcClear() {
+            currentInput = '0';
+            previousValue = 0;
+            operation = null;
+            waitingForNewInput = true;
+            updateCalcDisplay();
+        }
+
+        /**
+         * @function calcInput
+         * Handles numerical and decimal point input, and operator selection.
+         * @param {string} value - The button value (0-9, ., +, -, *, /).
+         */
+        function calcInput(value) {
+            const display = document.getElementById('calcDisplay');
+
+            if (waitingForNewInput && isFinite(value)) {
+                // Start new input if it's a number and we were waiting for it (e.g., after equals or operator press)
+                currentInput = value;
+                waitingForNewInput = false;
+            } else if (isFinite(value)) {
+                // Append number
+                if (currentInput === '0') {
+                    currentInput = value;
+                } else {
+                    currentInput += value;
+                }
+            } else if (value === '.') {
+                // Append decimal point
+                if (waitingForNewInput) {
+                    currentInput = '0.';
+                    waitingForNewInput = false;
+                } else if (!currentInput.includes('.')) {
+                    currentInput += '.';
+                }
+            } else {
+                // Handle Operator (+, -, *, /)
+                if (operation && !waitingForNewInput) {
+                    // Calculate previous result if an operation was pending
+                    calcEquals(); 
+                    previousValue = parseFloat(currentInput);
+                } else if (!operation) {
+                    previousValue = parseFloat(currentInput);
+                }
+                
+                operation = value;
+                waitingForNewInput = true;
+            }
+            updateCalcDisplay();
+        }
+
+        /**
+         * @function calcEquals
+         * Executes the pending operation and updates the display.
+         */
+        function calcEquals() {
+            if (operation === null || waitingForNewInput) {
+                // Do nothing if no operation is set or waiting for a new number
+                return;
+            }
+
+            const currentValue = parseFloat(currentInput);
+            let result = 0;
+
+            try {
+                switch (operation) {
+                    case '+':
+                        result = previousValue + currentValue;
+                        break;
+                    case '-':
+                        result = previousValue - currentValue;
+                        break;
+                    case '*':
+                        result = previousValue * currentValue;
+                        break;
+                    case '/':
+                        if (currentValue === 0) {
+                             currentInput = "Error: Div by 0";
+                             updateCalcDisplay();
+                             return;
+                        }
+                        result = previousValue / currentValue;
+                        break;
+                    default:
+                        return;
+                }
+                
+                // Format result to a maximum of 10 decimal places to prevent float issues
+                currentInput = parseFloat(result.toFixed(10)).toString();
+                previousValue = result;
+                operation = null;
+                waitingForNewInput = true;
+            } catch (e) {
+                currentInput = 'Error';
+            }
+            
+            updateCalcDisplay();
+        }
+
+        /**
+         * @function copyBasicCalcResult
+         * Copies the final result from the basic calculator to the selected input field
+         * in the main profit calculator and closes the modal automatically.
+         */
+        function copyBasicCalcResult() {
+            // 1. Finalize the calculation
+            calcEquals(); 
+            
+            const resultValue = parseFloat(currentInput);
+            const targetId = document.getElementById('copyTargetSelect').value;
+            const targetInput = document.getElementById(targetId);
+
+            if (targetInput && isFinite(resultValue)) {
+                // 2. Determine rounding based on target input type
+                let roundedValue;
+                if (targetId === 'durationValue') {
+                    roundedValue = Math.round(resultValue);
+                } else {
+                    // For financial/percentage inputs, round to 2 decimal places
+                    roundedValue = resultValue.toFixed(2);
+                }
+
+                targetInput.value = roundedValue;
+
+                // 3. Trigger calculation in the main app to update results
+                calculate();
+            }
+
+            // 4. Automatically close the calculator modal
+            toggleBasicCalculator();
+        }
 
         // Start calculation and update UI when the page loads
         window.onload = () => {
@@ -952,7 +1241,7 @@
             // Set initial language UI (MS default). 
             const langSwitch = document.getElementById('lang-switch');
             langSwitch.checked = false; 
-            toggleLanguage(); // Call this to set the initial state colors and labels
+            toggleLanguage(); // Call this to set the initial state colors, labels, and tooltips
             
             // Add event listener to detect manual rate changes
             document.getElementById('exchangeRateInput').addEventListener('input', () => {
