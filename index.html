@@ -8,6 +8,8 @@
     <link rel="manifest" href="manifest.json">
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <!-- Configure Tailwind for Inter font and define custom loss color -->
     <script>
         tailwind.config = {
@@ -92,9 +94,10 @@
 
     <!-- Container is fluid on mobile and centered/max-width on desktop -->
     <div class="w-full max-w-4xl space-y-8">
-        <header class="text-center relative">
-            <!-- Language Toggle Switch (Positioned absolutely on top right) -->
-            <div class="absolute top-0 right-0 w-24 h-8">
+        
+        <!-- Language Toggle Switch (Positioned above the main header, aligned right) -->
+        <div class="flex justify-end mb-4">
+            <div class="w-24 h-8 relative">
                 <input type="checkbox" id="lang-switch" class="hidden" onchange="toggleLanguage()">
                 <label for="lang-switch" class="relative block w-full h-full bg-primary rounded-full cursor-pointer transition duration-300">
                     <!-- Sliding Indicator -->
@@ -106,9 +109,11 @@
                     </div>
                 </label>
             </div>
-            
-            <!-- Adjusted title size for better mobile fit and margin to clear toggle switch -->
-            <h1 class="text-2xl sm:text-4xl font-extrabold text-primary mb-2 mt-12 sm:mt-0" id="headerTitle">Kalkulator Keuntungan Fleksibel</h1>
+        </div>
+
+        <header class="text-center relative">
+            <!-- Adjusted title margin removed as toggle is no longer absolute -->
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-primary mb-2" id="headerTitle">Kalkulator Keuntungan Fleksibel</h1>
             <p class="text-gray-600 text-base sm:text-lg" id="headerSubtitle">Kira pulangan berdasarkan kadar yang fleksibel untuk tempoh masa yang anda pilih.</p>
         </header>
 
@@ -125,8 +130,6 @@
                     <div class="mt-1 flex space-x-2 items-center">
                         <span class="text-lg font-semibold text-gray-600">1 RM =</span>
                         <div class="relative flex items-center">
-                            <!-- Input size is compact but padded for touch -->
-                            <!-- oninput is handled in window.onload to track manual changes -->
                             <input type="number" id="exchangeRateInput" value="0.2134" min="0.0001" step="0.0001" class="block w-24 rounded-md border-gray-300 shadow-sm p-3 border focus:border-secondary focus:ring-secondary text-right pr-3">
                         </div>
                         <span class="text-lg font-semibold text-gray-600">USD</span>
@@ -140,7 +143,7 @@
                         <label for="principal" class="block text-sm font-medium text-gray-700" id="labelPrincipal">Modal Awal</label>
                         <div class="flex space-x-2 mt-1">
                             <!-- Input and Select are given proportionate widths -->
-                            <input type="number" id="principal" value="1000" min="0" step="100" class="block w-2/3 rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary" oninput="calculate()">
+                            <input type="number" id="principal" value="1000" min="0" step="100" class="block w-2/3 rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary">
                             <select id="principalCurrencySelect" onchange="convertPrincipalValue()" class="block w-1/3 rounded-md border-gray-300 shadow-sm p-3 border focus:border-primary focus:ring-primary">
                                 <option value="MYR">RM</option>
                                 <option value="USD">USD</option>
@@ -148,7 +151,7 @@
                         </div>
                     </div>
                     
-                    <!-- Pilihan Jenis Keuntungan: Already uses flex-col on mobile and flex-row on 'sm' (small screen and up) -->
+                    <!-- Pilihan Jenis Keuntungan -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2" id="labelCalcType">Pilih Cara Kira Keuntungan</label>
                         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-6 bg-gray-50 p-3 rounded-lg">
@@ -207,8 +210,8 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Input Group 4: Duration -->
+                    
+                    <!-- Input Group 4: Duration (border-t is now here since Advanced Options is removed) -->
                     <div class="border-t pt-6 mt-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4" id="titleDuration">Tempoh Pengiraan</h3>
                         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
@@ -231,7 +234,7 @@
                 </div>
 
                 <!-- Results Section: Good padding and clear text sizes for mobile legibility -->
-                <div class="mt-8 pt-6 border-t border-gray-200 space-y-4">
+                <div class="mt-8 pt-6 border-t border-gray-200 space-y-4" id="resultsSection">
                     <h3 class="text-xl font-semibold text-gray-800" id="titleResults">Keputusan Pengiraan</h3>
                     
                     <!-- Current Rate Display -->
@@ -249,6 +252,26 @@
                         <div class="font-bold text-2xl mt-1" id="totalAmountResult">RM 0.00</div>
                     </div>
 
+                    <!-- Chart Canvas -->
+                    <div class="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-inner">
+                        <h4 class="text-base font-semibold text-gray-700 mb-2" id="chartTitle">Graf Baki Akhir Mingguan</h4>
+                        <canvas id="profitChartCanvas"></canvas>
+                    </div>
+                    
+                    <!-- Export Options -->
+                    <div class="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-100">
+                        <button id="exportCsvBtn" onclick="exportResults('csv')" class="w-full sm:w-1/2 bg-secondary text-gray-900 font-bold py-3 px-4 rounded-lg hover:bg-secondary/80 transition duration-150 shadow-md flex items-center justify-center">
+                            <!-- SVG for CSV file icon -->
+                            <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm3.5 13.5H8.5v-2h7v2zm0-4H8.5v-2h7v2z" fill="#059669"/></svg>
+                            <span id="exportCsvLabel">Eksport ke CSV</span>
+                        </button>
+                        <button id="exportPdfBtn" onclick="exportResults('pdf')" class="w-full sm:w-1/2 bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 transition duration-150 shadow-md flex items-center justify-center">
+                            <!-- SVG for Printer icon (used for print-to-PDF) -->
+                            <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M19 8H5a3 3 0 00-3 3v6h4v4h12v-4h4v-6a3 3 0 00-3-3zM8 12h8v4H8v-4zm7-4v2H9V8h6zm2-4H7V2h10v2z" fill="#374151"/></svg>
+                            <span id="exportPdfLabel">Eksport ke PDF (Cetak)</span>
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </main>
@@ -258,9 +281,11 @@
         // Constants for conversion (assuming 52 weeks/year and average 4.333 weeks/month)
         const DAYS_PER_WEEK = 7;
         const WEEKS_PER_MONTH = 52 / 12; 
-        
+        const WEEKS_PER_YEAR = 52;
+
         let currentLang = 'ms'; // Default language (MS)
         let rateSource = 'initial'; // 'initial' (default value), 'manual' (user modified)
+        let profitChart = null; // Chart.js instance
 
         // Translation dictionary for all static text elements
         const translations = {
@@ -291,13 +316,18 @@
                 titleResults: 'Keputusan Pengiraan',
                 labelTotalAmount: 'Jumlah Akhir (Modal + Untung)',
                 resultLabelInitial: 'Keuntungan Setelah Tempoh',
-                resultLabelCompoundingSuffix: ' (Berkompaun)',
                 resultLabelFixedSuffix: ' (Jumlah Tetap)',
                 sourceManual: ' (Diubah Manual)',
+                chartTitle: 'Graf Baki Akhir Mingguan',
+                exportCsvLabel: 'Eksport ke CSV',
+                exportPdfLabel: 'Eksport ke PDF (Cetak)',
                 currentRateFormat: (rate) => {
                     let sourceText = rateSource === 'manual' ? translations[currentLang].sourceManual : '';
                     return `Kadar semasa: 1 RM = ${rate} USD${sourceText}`;
                 },
+                chartYLabel: 'Baki Akhir',
+                chartXLabel: 'Minggu',
+                csvFileName: 'Laporan_Keuntungan.csv',
             },
             'en': {
                 headerTitle: 'Flexible Profit Calculator',
@@ -326,13 +356,18 @@
                 titleResults: 'Calculation Results',
                 labelTotalAmount: 'Final Total (Capital + Profit)',
                 resultLabelInitial: 'Profit After Period',
-                resultLabelCompoundingSuffix: ' (Compounded)',
                 resultLabelFixedSuffix: ' (Fixed Amount)',
                 sourceManual: ' (Manually Overwritten)',
+                chartTitle: 'Weekly Final Balance Chart',
+                exportCsvLabel: 'Export to CSV',
+                exportPdfLabel: 'Export to PDF (Print)',
                 currentRateFormat: (rate) => {
                     let sourceText = rateSource === 'manual' ? translations[currentLang].sourceManual : '';
                     return `Current rate: 1 MYR = ${rate} USD${sourceText}`;
                 },
+                chartYLabel: 'Final Balance',
+                chartXLabel: 'Week',
+                csvFileName: 'Profit_Report.csv',
             }
         };
 
@@ -358,18 +393,15 @@
             const labelMS = document.getElementById('label-ms');
             const labelEN = document.getElementById('label-en');
 
-            // Determine new language based on checkbox state (checked = EN, unchecked = MS)
             currentLang = langSwitch.checked ? 'en' : 'ms';
 
             // Toggle Text Colors based on active language (text inside white slider is primary color)
             if (currentLang === 'en') {
-                // EN is active (slider is on the right)
                 labelMS.classList.remove('text-primary');
                 labelMS.classList.add('text-white');
                 labelEN.classList.remove('text-white');
                 labelEN.classList.add('text-primary');
             } else {
-                // MS is active (slider is on the left)
                 labelMS.classList.remove('text-white');
                 labelMS.classList.add('text-primary');
                 labelEN.classList.remove('text-primary');
@@ -405,8 +437,10 @@
             document.getElementById('labelTotalAmount').textContent = t.labelTotalAmount;
             document.getElementById('labelExchangeRateTitle').textContent = t.labelExchangeRateTitle;
             document.getElementById('labelExchangeRateSubtitle').textContent = t.labelExchangeRateSubtitle;
-
-
+            document.getElementById('chartTitle').textContent = t.chartTitle;
+            document.getElementById('exportCsvLabel').textContent = t.exportCsvLabel;
+            document.getElementById('exportPdfLabel').textContent = t.exportPdfLabel;
+            
             // Update Select Options (Frequencies and Units)
             document.getElementById('rateFreqDay').textContent = t.rateFreqDay;
             document.getElementById('rateFreqWeek').textContent = t.rateFreqWeek;
@@ -420,7 +454,6 @@
             document.getElementById('durationUnitWeeks').textContent = t.durationUnitWeeks;
             document.getElementById('durationUnitMonths').textContent = t.durationUnitMonths;
         }
-
 
         /**
          * @function formatCurrency
@@ -465,7 +498,8 @@
                 default:
                     totalWeeks = 0;
             }
-            return Math.max(0, totalWeeks);
+            // Use Math.round to handle floating point issues from WEEKS_PER_MONTH
+            return Math.max(0, Math.round(totalWeeks));
         }
 
         /**
@@ -508,15 +542,11 @@
             const currencySelect = document.getElementById('principalCurrencySelect');
             const rates = getExchangeRates();
             
-            // Get the value before conversion
             let currentValue = parseFloat(principalInput.value) || 0;
             const newCurrency = currencySelect.value;
-            
-            // Retrieve the currency *before* the change (stored in data-last-currency)
             const previousCurrency = currencySelect.dataset.lastCurrency;
 
             if (!previousCurrency || previousCurrency === newCurrency) {
-                // If previous currency is not set (initial load) or no change, just calculate
                 currencySelect.dataset.lastCurrency = newCurrency;
                 calculate();
                 return;
@@ -524,23 +554,15 @@
             
             let convertedValue = currentValue;
 
-            // Convert FROM the previous currency TO the new currency
             if (previousCurrency === 'MYR' && newCurrency === 'USD') {
-                // RM -> USD
                 convertedValue = currentValue * rates.RM_TO_USD_RATE;
             } else if (previousCurrency === 'USD' && newCurrency === 'MYR') {
-                // USD -> RM
                 convertedValue = currentValue * rates.USD_TO_RM_RATE;
             }
 
-            // Update the input field with the new value (rounded to 2 decimal places)
-            // Use toFixed() to prevent floating point errors and keep it monetary
             principalInput.value = convertedValue.toFixed(2);
-            
-            // Store the new currency as the "last" one for the next change event
             currencySelect.dataset.lastCurrency = newCurrency;
             
-            // Recalculate all results
             calculate();
         }
 
@@ -554,11 +576,8 @@
             const currencySelect = document.getElementById('fixedCurrencySelect');
             const rates = getExchangeRates();
             
-            // Get the value before conversion
             let currentValue = parseFloat(fixedInput.value) || 0;
             const newCurrency = currencySelect.value;
-            
-            // Retrieve the currency *before* the change (stored in data-last-currency)
             const previousCurrency = currencySelect.dataset.lastCurrency;
 
             if (!previousCurrency || previousCurrency === newCurrency) {
@@ -569,22 +588,15 @@
             
             let convertedValue = currentValue;
 
-            // Convert FROM the previous currency TO the new currency
             if (previousCurrency === 'MYR' && newCurrency === 'USD') {
-                // RM -> USD
                 convertedValue = currentValue * rates.RM_TO_USD_RATE;
             } else if (previousCurrency === 'USD' && newCurrency === 'MYR') {
-                // USD -> RM
                 convertedValue = currentValue * rates.USD_TO_RM_RATE;
             }
 
-            // Update the input field with the new value (rounded to 2 decimal places)
             fixedInput.value = convertedValue.toFixed(2);
-            
-            // Store the new currency as the "last" one for the next change event
             currencySelect.dataset.lastCurrency = newCurrency;
             
-            // Recalculate all results
             calculate();
         }
 
@@ -641,40 +653,107 @@
             ];
 
             resultElements.forEach(el => {
-                // Manage background, border, and custom glow class
                 profitClasses.slice(0, 2).forEach(c => el.classList.toggle(c, !isLoss));
                 lossClasses.slice(0, 2).forEach(c => el.classList.toggle(c, isLoss));
-                
-                // Manage custom glow class for hover
                 el.classList.toggle('result-box-profit', !isLoss);
                 el.classList.toggle('result-box-loss', isLoss);
-
-                // Ensure border remains visible
                 el.classList.add('border');
             });
 
             valueElements.forEach(el => {
-                // Manage text color
                 profitClasses.slice(2).forEach(c => el.classList.toggle(c, !isLoss));
                 lossClasses.slice(2).forEach(c => el.classList.toggle(c, isLoss));
             });
 
             // 2. Logic for Main Card
             const mainCard = document.getElementById('annual-profit-calculator');
-            
-            // Manage Border Color (top border)
             mainCard.classList.toggle('border-primary', !isLoss);
             mainCard.classList.toggle('border-loss', isLoss); 
-
-            // Manage Hover Glow
             mainCard.classList.toggle('card-profit-glow', !isLoss);
             mainCard.classList.toggle('card-loss-glow', isLoss);
-            
-            // Manage Title Color
             document.getElementById('cardTitle').classList.toggle('text-primary', !isLoss);
             document.getElementById('cardTitle').classList.toggle('text-loss', isLoss);
         }
+        
+        /**
+         * @function setupChart
+         * Initializes or updates the Chart.js chart with new balance data.
+         * @param {Array<number>} balanceData - Weekly balance points (in principal currency).
+         * @param {string} currencyCode - The currency code for the Y-axis label.
+         */
+        function setupChart(balanceData, currencyCode) {
+            const ctx = document.getElementById('profitChartCanvas').getContext('2d');
+            const totalWeeks = balanceData.length - 1; 
+            const labels = Array.from({length: totalWeeks + 1}, (_, i) => i);
+            const isLoss = balanceData[balanceData.length - 1] < balanceData[0];
+            const datasetColor = isLoss ? '#dc2626' : '#059669'; // loss vs primary
 
+            const t = translations[currentLang];
+
+            // Destroy existing chart if it exists
+            if (profitChart) {
+                profitChart.destroy();
+            }
+
+            profitChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels, // Week 0, 1, 2, ... totalWeeks
+                    datasets: [{
+                        label: `${t.chartYLabel} (${currencyCode})`,
+                        data: balanceData,
+                        borderColor: datasetColor,
+                        backgroundColor: isLoss ? 'rgba(220, 38, 38, 0.1)' : 'rgba(5, 150, 105, 0.1)',
+                        tension: 0.3, // Curve smoothing
+                        borderWidth: 2,
+                        fill: true,
+                        pointRadius: totalWeeks > 52 ? 0 : 3, // Hide points if too many weeks
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false,
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${t.chartYLabel}: ${formatCurrency(context.parsed.y, currencyCode)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: `${t.chartYLabel} (${currencyCode})`,
+                                color: '#374151',
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value, currencyCode).replace(currencyCode, ''); // Remove currency code for compact axis
+                                }
+                            },
+                            beginAtZero: true
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: t.chartXLabel,
+                                color: '#374151',
+                            },
+                            ticks: {
+                                maxTicksLimit: 10,
+                                autoSkipPadding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
         /**
          * @function calculate
@@ -692,13 +771,10 @@
             const principalCurrencyCode = document.getElementById('principalCurrencySelect').value;
             
             // 1. Convert ALL inputs to the Base Currency (MYR/RM)
-            
-            // Principal
             const principalInput = parseFloat(document.getElementById('principal').value) || 0;
             const principalInputCurrency = document.getElementById('principalCurrencySelect').value;
             const principalRM = convertToBaseCurrency(principalInput, principalInputCurrency);
 
-            // Calculation Period
             const totalWeeks = getCalculationPeriods();
 
             const annualProfitResult = document.getElementById('annualProfitResult');
@@ -708,7 +784,6 @@
             // Duration Text
             const durationValue = document.getElementById('durationValue').value;
             const durationUnitElement = document.getElementById('durationUnit').options[document.getElementById('durationUnit').selectedIndex];
-            // Uses the translation key from the selected option (e.g., durationUnitDays)
             const durationUnitKey = 'durationUnit' + durationUnitElement.value.charAt(0).toUpperCase() + durationUnitElement.value.slice(1);
             const durationUnitText = t[durationUnitKey]; 
 
@@ -716,32 +791,41 @@
 
             let profitRM = 0;
             let totalAmountRM = principalRM;
+            let weeklyBalancesRM = [principalRM]; // For chart data (Week 0)
 
             if (type === 'percentage') {
-                newLabel += t.resultLabelCompoundingSuffix;
                 const ratePercent = parseFloat(document.getElementById('rate').value) || 0;
                 const rateFrequency = document.getElementById('rateFrequency').value;
                 
                 let ratePerWeek = 0; 
 
-                if (principalRM > 0) { // Only calculate if there is initial capital
+                if (principalRM > 0) { 
                     const rateDecimal = ratePercent / 100;
                     
+                    // Discrete Compounding Logic (Compounding at the end of each period)
                     if (rateFrequency === 'day') {
-                        // Rate per day: (1 + rateDecimal)^7 - 1
+                        // Convert daily rate to weekly effective rate
                         ratePerWeek = Math.pow(1 + rateDecimal, DAYS_PER_WEEK) - 1;
                     } else if (rateFrequency === 'week') {
-                        // Rate per week: directly
+                        // Weekly rate is the base rate
                         ratePerWeek = rateDecimal;
                     } else if (rateFrequency === 'month') {
-                        // Rate per month: (1 + rateDecimal)^(1/WEEKS_PER_MONTH) - 1
+                        // Convert monthly rate to weekly effective rate
                         ratePerWeek = Math.pow(1 + rateDecimal, 1 / WEEKS_PER_MONTH) - 1;
                     }
-                }
-                
-                if (principalRM > 0 && totalWeeks > 0) {
+                    
+                    // A = P * (1 + i)^n
                     totalAmountRM = principalRM * Math.pow(1 + ratePerWeek, totalWeeks);
+
+                    // Calculate weekly points for chart
+                    let currentBalance = principalRM;
+                    for (let week = 1; week <= totalWeeks; week++) {
+                        currentBalance *= (1 + ratePerWeek);
+                        weeklyBalancesRM.push(currentBalance);
+                    }
+
                     profitRM = totalAmountRM - principalRM;
+
                 } else {
                     totalAmountRM = principalRM;
                     profitRM = 0;
@@ -770,6 +854,12 @@
                 if (totalWeeks > 0) {
                     profitRM = weeklyFixedProfitRM * totalWeeks;
                     totalAmountRM = principalRM + profitRM;
+
+                    // Calculate weekly points for chart (linear growth)
+                    for (let week = 1; week <= totalWeeks; week++) {
+                        const balance = principalRM + (weeklyFixedProfitRM * week);
+                        weeklyBalancesRM.push(balance);
+                    }
                 } else {
                     profitRM = 0;
                     totalAmountRM = principalRM;
@@ -780,6 +870,9 @@
             const profitDisplay = convertFromBaseCurrency(profitRM, principalCurrencyCode);
             const totalAmountDisplay = convertFromBaseCurrency(totalAmountRM, principalCurrencyCode);
             
+            // Convert weekly balances to display currency for the chart
+            const weeklyBalancesDisplay = weeklyBalancesRM.map(balance => convertFromBaseCurrency(balance, principalCurrencyCode));
+
             // Check for loss to apply red styling
             const isLoss = profitDisplay < 0;
             applyResultStyling(isLoss);
@@ -787,31 +880,82 @@
 
             // 3. Update Result Displays
             resultLabel.textContent = newLabel;
-            
-            // Use the formatCurrency function with the selected principal currency
             annualProfitResult.textContent = formatCurrency(profitDisplay, principalCurrencyCode);
             totalAmountResult.textContent = formatCurrency(totalAmountDisplay, principalCurrencyCode);
+            
+            // 4. Update Chart
+            setupChart(weeklyBalancesDisplay, principalCurrencyCode);
         }
+
+        /**
+         * @function exportResults
+         * Exports calculation results as CSV or triggers print for PDF.
+         * @param {string} format - 'csv' or 'pdf'.
+         */
+        function exportResults(format) {
+            const t = translations[currentLang];
+            const principalCurrencyCode = document.getElementById('principalCurrencySelect').value;
+            const rates = getExchangeRates();
+
+            if (format === 'csv') {
+                const finalProfitText = document.getElementById('annualProfitResult').textContent;
+                const totalAmountText = document.getElementById('totalAmountResult').textContent;
+                const durationText = document.getElementById('resultLabel').textContent.split(t.resultLabelInitial + ' ')[1] || '';
+                const type = document.querySelector('input[name="profitType"]:checked').value;
+                
+                let calculationDetails = '';
+                if (type === 'percentage') {
+                    const rate = document.getElementById('rate').value;
+                    const freq = document.getElementById('rateFrequency').value;
+                    calculationDetails = `${rate}% / ${t['rateFreq' + freq.charAt(0).toUpperCase() + freq.slice(1)]}`;
+                } else {
+                    const fixed = document.getElementById('fixedAmount').value;
+                    const fixedCurr = document.getElementById('fixedCurrencySelect').value;
+                    const freq = document.getElementById('fixedFrequency').value;
+                    calculationDetails = `${fixedCurr} ${fixed} / ${t['fixedFreq' + freq.charAt(0).toUpperCase() + freq.slice(1)]}`;
+                }
+
+
+                let csvContent = `Data,Nilai,Unit\n`;
+                csvContent += `${t.labelPrincipal},${document.getElementById('principal').value},${principalCurrencyCode}\n`;
+                csvContent += `${t.titleDuration} (${t.labelDurationValue} ${t.labelDurationUnit}),${durationText},N/A\n`;
+                csvContent += `${t.labelCalcType},${calculationDetails},N/A\n`;
+                csvContent += `${t.labelExchangeRateTitle},1 RM = ${rates.RM_TO_USD_RATE.toFixed(4)},USD\n`;
+                csvContent += `\n`;
+                csvContent += `${t.resultLabelInitial},${finalProfitText.replace(/[^0-9.-]/g, '')},${principalCurrencyCode}\n`;
+                csvContent += `${t.labelTotalAmount},${totalAmountText.replace(/[^0-9.-]/g, '')},${principalCurrencyCode}\n`;
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.setAttribute('download', t.csvFileName);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+            } else if (format === 'pdf') {
+                // Use browser's built-in print functionality
+                window.print();
+            }
+        }
+
 
         // Start calculation and update UI when the page loads
         window.onload = () => {
             // Set initial calculation type
             toggleCalculationType();
             
-            // Initialize the last currency state for the auto-conversion feature (Principal)
+            // Initialize the last currency state for the auto-conversion feature
             document.getElementById('principalCurrencySelect').dataset.lastCurrency = document.getElementById('principalCurrencySelect').value;
-            
-            // Initialize the last currency state for the auto-conversion feature (Fixed Amount)
             document.getElementById('fixedCurrencySelect').dataset.lastCurrency = document.getElementById('fixedCurrencySelect').value;
 
-            // Set initial language UI (MS default). The checkbox is unchecked, so currentLang='ms'.
+            // Set initial language UI (MS default). 
             const langSwitch = document.getElementById('lang-switch');
             langSwitch.checked = false; 
             toggleLanguage(); // Call this to set the initial state colors and labels
             
             // Add event listener to detect manual rate changes
             document.getElementById('exchangeRateInput').addEventListener('input', () => {
-                // Mark source as manual when user types, then run calculation
                 rateSource = 'manual';
                 calculate(); 
             });
@@ -821,9 +965,6 @@
             document.getElementById('rate').oninput = calculate;
             document.getElementById('fixedAmount').oninput = calculate;
             document.getElementById('durationValue').oninput = calculate;
-            
-            // The currency selection calls convertPrincipalValue()/convertFixedAmountValue() which calls calculate()
-            // Frequency and Unit selects call calculate() directly via onchange attributes in HTML
             
             // Perform initial calculation
             calculate(); 
